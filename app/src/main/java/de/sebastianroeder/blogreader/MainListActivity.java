@@ -11,9 +11,18 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.CharBuffer;
 
 
 public class MainListActivity extends ListActivity {
@@ -76,9 +85,21 @@ public class MainListActivity extends ListActivity {
                 HttpURLConnection connection = (HttpURLConnection) feedURLs[0].openConnection();
                 connection.connect();
                 int responseCode = connection.getResponseCode();
-                Log.i(TAG, "HTTP Response Code: " + responseCode);
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    InputStream inputStream = connection.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    String response = reader.readLine();
+                    JSONObject jsonResponse = new JSONObject(response);
+                    Log.v(TAG, "JSON status: " + jsonResponse.getString("status"));
+                    JSONArray jsonPosts = jsonResponse.getJSONArray("posts");
+                    Log.i(TAG, "Number of posts in feed: " + jsonPosts.length());
+                } else {
+                    Log.i(TAG, "Unsuccessful HTTP Response Code: " + responseCode);
+                }
             } catch (java.io.IOException e) {
                 Log.e(TAG, "IOException caught: ", e);
+            } catch (JSONException e) {
+                Log.e(TAG, "JSONException caught: ", e);
             }
             return null;
         }
