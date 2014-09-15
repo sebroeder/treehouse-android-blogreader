@@ -6,9 +6,11 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -18,11 +20,9 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.CharBuffer;
 
 
 public class MainListActivity extends ListActivity {
@@ -32,6 +32,7 @@ public class MainListActivity extends ListActivity {
             "http://blog.teamtreehouse.com/api/get_recent_summary/?count=";
     public static final String TAG = MainListActivity.class.getSimpleName();
     protected String[] mBlogPostTitles;
+    protected JSONObject mBlogData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +71,28 @@ public class MainListActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
+    private void updateList() {
+        if (mBlogData != null) {
+            try {
+                JSONArray jsonPosts = mBlogData.getJSONArray("posts");
+                int numberOfPosts = jsonPosts.length();
+                mBlogPostTitles = new String[numberOfPosts];
+                for (int i = 0; i < numberOfPosts; i++) {
+                    String escapedTitle = jsonPosts.getJSONObject(i).getString("title");
+                    String unescapedTitle = Html.fromHtml(escapedTitle).toString();
+                    mBlogPostTitles[i] = unescapedTitle;
+                }
+            } catch (JSONException e) {
+                Log.e(TAG, "JSONException caught: ", e);
+            }
+        }
+
+        ArrayAdapter<String> arrayAdapter =
+                new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, mBlogPostTitles);
+                setListAdapter(arrayAdapter);
+    }
+
     private boolean isNetworkAvailable() {
         ConnectivityManager manager =
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -77,10 +100,11 @@ public class MainListActivity extends ListActivity {
         return networkInfo != null && networkInfo.isConnected();
     }
 
-    private class GetBlogPostsTask extends AsyncTask<URL, Void, Void> {
+    private class GetBlogPostsTask extends AsyncTask<URL, Void, JSONObject> {
 
         @Override
-        protected Void doInBackground(URL... feedURLs) {
+        protected JSONObject doInBackground(URL... feedURLs) {
+            JSONObject jsonResponse = null;
             try {
                 HttpURLConnection connection = (HttpURLConnection) feedURLs[0].openConnection();
                 connection.connect();
@@ -89,10 +113,7 @@ public class MainListActivity extends ListActivity {
                     InputStream inputStream = connection.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
                     String response = reader.readLine();
-                    JSONObject jsonResponse = new JSONObject(response);
-                    Log.v(TAG, "JSON status: " + jsonResponse.getString("status"));
-                    JSONArray jsonPosts = jsonResponse.getJSONArray("posts");
-                    Log.i(TAG, "Number of posts in feed: " + jsonPosts.length());
+                    jsonResponse = new JSONObject(response);
                 } else {
                     Log.i(TAG, "Unsuccessful HTTP Response Code: " + responseCode);
                 }
@@ -101,7 +122,13 @@ public class MainListActivity extends ListActivity {
             } catch (JSONException e) {
                 Log.e(TAG, "JSONException caught: ", e);
             }
-            return null;
+            return jsonResponse;
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject jsonResponse) {
+            mBlogData = jsonResponse;
+            updateList();
         }
     }
 }
