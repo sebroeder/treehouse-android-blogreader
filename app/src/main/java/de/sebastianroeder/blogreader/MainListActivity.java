@@ -1,5 +1,6 @@
 package de.sebastianroeder.blogreader;
 
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -86,11 +87,18 @@ public class MainListActivity extends ListActivity {
             } catch (JSONException e) {
                 Log.e(TAG, "JSONException caught: ", e);
             }
-        }
 
-        ArrayAdapter<String> arrayAdapter =
-                new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, mBlogPostTitles);
-                setListAdapter(arrayAdapter);
+            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
+                    this,android.R.layout.simple_list_item_1, mBlogPostTitles);
+            setListAdapter(arrayAdapter);
+        } else {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(R.string.error_alert_title);
+            builder.setMessage(R.string.blog_data_is_null_alert_message);
+            builder.setPositiveButton(android.R.string.ok, null);
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
     }
 
     private boolean isNetworkAvailable() {
