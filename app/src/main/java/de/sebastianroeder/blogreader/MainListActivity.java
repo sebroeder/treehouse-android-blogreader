@@ -31,9 +31,8 @@ import java.net.URL;
 
 public class MainListActivity extends ListActivity {
 
-    public static final int NUMBER_OF_POSTS = 20;
     public static final String FEED_URL =
-            "http://blog.teamtreehouse.com/api/get_recent_summary/?count=";
+            "http://blog.teamtreehouse.com/api/get_recent_summary/?count=20";
     public static final String TAG = MainListActivity.class.getSimpleName();
     protected String[] mBlogPostTitles;
     protected JSONObject mBlogData;
@@ -48,9 +47,9 @@ public class MainListActivity extends ListActivity {
         if (isNetworkAvailable()) {
             try {
                 mProgressBar.setVisibility(View.VISIBLE);
-                URL feedURL = new URL(FEED_URL + NUMBER_OF_POSTS);
-                GetBlogPostsTask getBlogPostsTask = new GetBlogPostsTask();
-                getBlogPostsTask.execute(feedURL);
+                URL feedURL = new URL(FEED_URL);
+                FetchBlogDataTask fetchBlogDataTask = new FetchBlogDataTask();
+                fetchBlogDataTask.execute(feedURL);
             } catch (MalformedURLException e) {
                 Log.e(TAG, "MalformedURLException caught: ", e);
             }
@@ -118,35 +117,32 @@ public class MainListActivity extends ListActivity {
         return networkInfo != null && networkInfo.isConnected();
     }
 
-    private class GetBlogPostsTask extends AsyncTask<URL, Void, JSONObject> {
+    private class FetchBlogDataTask extends AsyncTask<URL, Void, JSONObject> {
 
         @Override
         protected JSONObject doInBackground(URL... feedURLs) {
-            JSONObject jsonResponse = null;
+            return fetchBlogData(feedURLs[0]);
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject blogData) {
+            mBlogData = blogData;
+            updateList();
+        }
+
+        private JSONObject fetchBlogData(URL feedURL) {
+            JSONObject blogData = null;
             try {
-                HttpURLConnection connection = (HttpURLConnection) feedURLs[0].openConnection();
-                connection.connect();
-                int responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    InputStream inputStream = connection.getInputStream();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                    String response = reader.readLine();
-                    jsonResponse = new JSONObject(response);
-                } else {
-                    Log.i(TAG, "Unsuccessful HTTP Response Code: " + responseCode);
-                }
+                HttpURLConnection connection = (HttpURLConnection) feedURL.openConnection();
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(connection.getInputStream()));
+                blogData = new JSONObject(reader.readLine());
             } catch (java.io.IOException e) {
                 Log.e(TAG, "IOException caught: ", e);
             } catch (JSONException e) {
                 Log.e(TAG, "JSONException caught: ", e);
             }
-            return jsonResponse;
-        }
-
-        @Override
-        protected void onPostExecute(JSONObject jsonResponse) {
-            mBlogData = jsonResponse;
-            updateList();
+            return blogData;
         }
     }
 }
