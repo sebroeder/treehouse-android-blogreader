@@ -15,18 +15,18 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainListActivity extends ListActivity {
@@ -34,7 +34,7 @@ public class MainListActivity extends ListActivity {
     public static final String FEED_URL =
             "http://blog.teamtreehouse.com/api/get_recent_summary/?count=20";
     public static final String TAG = MainListActivity.class.getSimpleName();
-    protected String[] mBlogPostTitles;
+    protected List<String> mBlogPostTitles;
     protected JSONObject mBlogData;
     protected ProgressBar mProgressBar;
 
@@ -74,35 +74,45 @@ public class MainListActivity extends ListActivity {
     }
 
 
-    private void updateList() {
+    private void handleBlogData() {
         if (mBlogData != null) {
-            try {
-                JSONArray jsonPosts = mBlogData.getJSONArray("posts");
-                int numberOfPosts = jsonPosts.length();
-                mBlogPostTitles = new String[numberOfPosts];
-                for (int i = 0; i < numberOfPosts; i++) {
-                    String escapedTitle = jsonPosts.getJSONObject(i).getString("title");
-                    String unescapedTitle = Html.fromHtml(escapedTitle).toString();
-                    mBlogPostTitles[i] = unescapedTitle;
-                }
-            } catch (JSONException e) {
-                Log.e(TAG, "JSONException caught: ", e);
-            }
-
-            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
-                    this,android.R.layout.simple_list_item_1, mBlogPostTitles);
-            setListAdapter(arrayAdapter);
+            displayBlogData();
         } else {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle(R.string.error_alert_title);
-            builder.setMessage(R.string.blog_data_is_null_alert_message);
-            builder.setPositiveButton(android.R.string.ok, null);
-            AlertDialog dialog = builder.create();
-            dialog.show();
-
-            TextView emptyListTextView = (TextView) getListView().getEmptyView();
-            emptyListTextView.setText(getString(R.string.no_blog_posts));
+            displayAlertDialog();
         }
+    }
+
+    private void displayBlogData() {
+        try {
+            JSONArray jsonPosts = mBlogData.getJSONArray("posts");
+            mBlogPostTitles = new ArrayList<String>();
+            for (int i = 0; i < jsonPosts.length(); i++) {
+                String blogTitle = getBlogTitle(jsonPosts, i);
+                mBlogPostTitles.add(blogTitle);
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "JSONException caught: ", e);
+        }
+
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
+                this,android.R.layout.simple_list_item_1, mBlogPostTitles);
+        setListAdapter(arrayAdapter);
+    }
+
+    private String getBlogTitle(JSONArray jsonPosts, int i) throws JSONException {
+        String escapedTitle = jsonPosts.getJSONObject(i).getString("title");
+        return Html.fromHtml(escapedTitle).toString();
+    }
+
+    private void displayAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.error_alert_title);
+        builder.setMessage(R.string.blog_data_is_null_alert_message);
+        builder.setPositiveButton(android.R.string.ok, null);
+        builder.create().show();
+
+        TextView emptyListTextView = (TextView) getListView().getEmptyView();
+        emptyListTextView.setText(getString(R.string.no_blog_posts));
     }
 
     private boolean isNetworkAvailable() {
@@ -124,7 +134,7 @@ public class MainListActivity extends ListActivity {
         protected void onPostExecute(JSONObject blogData) {
             mProgressBar.setVisibility(View.INVISIBLE);
             mBlogData = blogData;
-            updateList();
+            handleBlogData();
         }
 
         private JSONObject fetchBlogData(URL feedURL) {
