@@ -46,15 +46,11 @@ public class MainListActivity extends ListActivity {
 
         if (isNetworkAvailable()) {
             try {
-                mProgressBar.setVisibility(View.VISIBLE);
                 URL feedURL = new URL(FEED_URL);
-                FetchBlogDataTask fetchBlogDataTask = new FetchBlogDataTask();
-                fetchBlogDataTask.execute(feedURL);
+                new FetchBlogDataTask().execute(feedURL);
             } catch (MalformedURLException e) {
                 Log.e(TAG, "MalformedURLException caught: ", e);
             }
-        } else {
-            Toast.makeText(this, "Network is unavailable", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -79,7 +75,6 @@ public class MainListActivity extends ListActivity {
 
 
     private void updateList() {
-        mProgressBar.setVisibility(View.INVISIBLE);
         if (mBlogData != null) {
             try {
                 JSONArray jsonPosts = mBlogData.getJSONArray("posts");
@@ -121,11 +116,13 @@ public class MainListActivity extends ListActivity {
 
         @Override
         protected JSONObject doInBackground(URL... feedURLs) {
+            mProgressBar.setVisibility(View.VISIBLE);
             return fetchBlogData(feedURLs[0]);
         }
 
         @Override
         protected void onPostExecute(JSONObject blogData) {
+            mProgressBar.setVisibility(View.INVISIBLE);
             mBlogData = blogData;
             updateList();
         }
