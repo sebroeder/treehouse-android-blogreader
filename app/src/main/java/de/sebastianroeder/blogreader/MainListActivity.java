@@ -11,7 +11,10 @@ import android.text.Html;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -34,14 +37,17 @@ public class MainListActivity extends ListActivity {
     public static final String TAG = MainListActivity.class.getSimpleName();
     protected String[] mBlogPostTitles;
     protected JSONObject mBlogData;
+    protected ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_list);
+        mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
 
         if (isNetworkAvailable()) {
             try {
+                mProgressBar.setVisibility(View.VISIBLE);
                 URL feedURL = new URL(FEED_URL + NUMBER_OF_POSTS);
                 GetBlogPostsTask getBlogPostsTask = new GetBlogPostsTask();
                 getBlogPostsTask.execute(feedURL);
@@ -74,6 +80,7 @@ public class MainListActivity extends ListActivity {
 
 
     private void updateList() {
+        mProgressBar.setVisibility(View.INVISIBLE);
         if (mBlogData != null) {
             try {
                 JSONArray jsonPosts = mBlogData.getJSONArray("posts");
@@ -98,6 +105,9 @@ public class MainListActivity extends ListActivity {
             builder.setPositiveButton(android.R.string.ok, null);
             AlertDialog dialog = builder.create();
             dialog.show();
+
+            TextView emptyListTextView = (TextView) getListView().getEmptyView();
+            emptyListTextView.setText(getString(R.string.no_blog_posts));
         }
     }
 
