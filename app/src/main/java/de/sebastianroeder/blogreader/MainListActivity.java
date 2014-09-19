@@ -12,8 +12,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ProgressBar;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -26,7 +26,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
 
 public class MainListActivity extends ListActivity {
@@ -34,7 +34,10 @@ public class MainListActivity extends ListActivity {
     public static final String FEED_URL =
             "http://blog.teamtreehouse.com/api/get_recent_summary/?count=20";
     public static final String TAG = MainListActivity.class.getSimpleName();
-    protected List<String> mBlogPostTitles;
+    public static final String KEY_AUTHOR = "author";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_POSTS = "posts";
+    protected ArrayList<HashMap<String, String>> mBlogPosts;
     protected JSONObject mBlogData;
     protected ProgressBar mProgressBar;
 
@@ -84,24 +87,46 @@ public class MainListActivity extends ListActivity {
 
     private void displayBlogData() {
         try {
-            JSONArray jsonPosts = mBlogData.getJSONArray("posts");
-            mBlogPostTitles = new ArrayList<String>();
+            JSONArray jsonPosts = mBlogData.getJSONArray(KEY_POSTS);
+            mBlogPosts = new ArrayList<HashMap<String, String>>();
             for (int i = 0; i < jsonPosts.length(); i++) {
                 String blogTitle = getBlogTitle(jsonPosts, i);
-                mBlogPostTitles.add(blogTitle);
+                String blogAuthor = getBlogAuthor(jsonPosts, i);
+                mBlogPosts.add(createBlogPostHashMap(blogAuthor, blogTitle));
             }
         } catch (JSONException e) {
             Log.e(TAG, "JSONException caught: ", e);
         }
 
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
-                this,android.R.layout.simple_list_item_1, mBlogPostTitles);
-        setListAdapter(arrayAdapter);
+        setupListAdapter();
+    }
+
+    private void setupListAdapter() {
+        String[] keys = {KEY_TITLE, KEY_AUTHOR};
+        int[] ids = { android.R.id.text1, android.R.id.text2};
+        SimpleAdapter simpleAdapter= new SimpleAdapter(
+                        this, mBlogPosts, android.R.layout.simple_list_item_2, keys, ids);
+        setListAdapter(simpleAdapter);
+    }
+
+    private HashMap<String, String> createBlogPostHashMap(String blogAuthor, String blogTitle) {
+        HashMap<String, String> blogPost = new HashMap<String, String>();
+        blogPost.put(KEY_TITLE, blogTitle);
+        blogPost.put(KEY_AUTHOR, blogAuthor);
+        return blogPost;
     }
 
     private String getBlogTitle(JSONArray jsonPosts, int i) throws JSONException {
-        String escapedTitle = jsonPosts.getJSONObject(i).getString("title");
-        return Html.fromHtml(escapedTitle).toString();
+        return getJSONField(jsonPosts, i, KEY_TITLE);
+    }
+
+    private String getBlogAuthor(JSONArray jsonPosts, int i) throws JSONException {
+        return getJSONField(jsonPosts, i, KEY_AUTHOR);
+    }
+
+    private String getJSONField(JSONArray jsonPosts, int i, String fieldName) throws JSONException {
+        String escapedFieldContent = jsonPosts.getJSONObject(i).getString(fieldName);
+        return Html.fromHtml(escapedFieldContent).toString();
     }
 
     private void displayAlertDialog() {
