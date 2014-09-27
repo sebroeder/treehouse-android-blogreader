@@ -78,9 +78,9 @@ public class MainListActivity extends ListActivity {
         try {
             JSONObject clickedPost = mBlogPosts.getJSONObject(position);
             String clickedPostURL = clickedPost.getString("url");
-            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
-            viewIntent.setData(Uri.parse(clickedPostURL));
-            startActivity(viewIntent);
+            Intent intent = new Intent(this, BlogWebViewActivity.class);
+            intent.setData(Uri.parse(clickedPostURL));
+            startActivity(intent);
         } catch (JSONException e) {
             logException(e);
         }

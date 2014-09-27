@@ -6,5 +6,6 @@
     <string name="no_blog_posts">No blog posts available.</string>
     <string name="error_alert_title">Sorry, an error occurred.</string>
     <string name="blog_data_is_null_alert_message">Blog posts could not be fetched over the network.</string>
+    <string name="title_activity_blog_web_view">Blog Post</string>
 
 </resources>
