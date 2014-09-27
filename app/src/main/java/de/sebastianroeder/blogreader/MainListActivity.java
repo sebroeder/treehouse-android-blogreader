@@ -3,14 +3,17 @@ package de.sebastianroeder.blogreader;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
@@ -36,8 +39,9 @@ public class MainListActivity extends ListActivity {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_TITLE = "title";
     public static final String KEY_POSTS = "posts";
-    protected ArrayList<HashMap<String, String>> mBlogPosts;
+    protected ArrayList<HashMap<String, String>> mBlogTitleAuthorMap;
     protected JSONObject mBlogData;
+    protected JSONArray mBlogPosts;
     protected ProgressBar mProgressBar;
 
     @Override
@@ -68,6 +72,21 @@ public class MainListActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+        super.onListItemClick(l, v, position, id);
+        try {
+            JSONObject clickedPost = mBlogPosts.getJSONObject(position);
+            String clickedPostURL = clickedPost.getString("url");
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setData(Uri.parse(clickedPostURL));
+            startActivity(viewIntent);
+        } catch (JSONException e) {
+            logException(e);
+        }
+
+    }
+
     private void logException(Exception e) {
         String exceptionType = e.getClass().getSimpleName();
         Log.e(TAG, exceptionType + " caught: ", e);
@@ -82,26 +101,28 @@ public class MainListActivity extends ListActivity {
     }
 
     private void displayBlogData() {
+        createTitleAuthorMap();
+        setupListAdapter();
+    }
+
+    private void createTitleAuthorMap() {
         try {
-            JSONArray jsonPosts = mBlogData.getJSONArray(KEY_POSTS);
-            mBlogPosts = new ArrayList<HashMap<String, String>>();
-            for (int i = 0; i < jsonPosts.length(); i++) {
-                String blogTitle = getBlogTitle(jsonPosts, i);
-                String blogAuthor = getBlogAuthor(jsonPosts, i);
-                mBlogPosts.add(createBlogPostHashMap(blogAuthor, blogTitle));
+            mBlogTitleAuthorMap = new ArrayList<HashMap<String, String>>();
+            for (int i = 0; i < mBlogPosts.length(); i++) {
+                String blogTitle = getBlogTitleAtIndex(i);
+                String blogAuthor = getBlogAuthorAtIndex(i);
+                mBlogTitleAuthorMap.add(createBlogPostHashMap(blogAuthor, blogTitle));
             }
         } catch (JSONException e) {
-            Log.e(TAG, "JSONException caught: ", e);
+            logException(e);
         }
-
-        setupListAdapter();
     }
 
     private void setupListAdapter() {
         String[] keys = {KEY_TITLE, KEY_AUTHOR};
         int[] ids = { android.R.id.text1, android.R.id.text2};
         SimpleAdapter simpleAdapter= new SimpleAdapter(
-                        this, mBlogPosts, android.R.layout.simple_list_item_2, keys, ids);
+                        this, mBlogTitleAuthorMap, android.R.layout.simple_list_item_2, keys, ids);
         setListAdapter(simpleAdapter);
     }
 
@@ -112,16 +133,16 @@ public class MainListActivity extends ListActivity {
         return blogPost;
     }
 
-    private String getBlogTitle(JSONArray jsonPosts, int i) throws JSONException {
-        return getJSONField(jsonPosts, i, KEY_TITLE);
+    private String getBlogTitleAtIndex(int i) throws JSONException {
+        return getJSONField(i, KEY_TITLE);
     }
 
-    private String getBlogAuthor(JSONArray jsonPosts, int i) throws JSONException {
-        return getJSONField(jsonPosts, i, KEY_AUTHOR);
+    private String getBlogAuthorAtIndex(int i) throws JSONException {
+        return getJSONField(i, KEY_AUTHOR);
     }
 
-    private String getJSONField(JSONArray jsonPosts, int i, String fieldName) throws JSONException {
-        String escapedFieldContent = jsonPosts.getJSONObject(i).getString(fieldName);
+    private String getJSONField(int i, String fieldName) throws JSONException {
+        String escapedFieldContent = mBlogPosts.getJSONObject(i).getString(fieldName);
         return Html.fromHtml(escapedFieldContent).toString();
     }
 
@@ -155,6 +176,12 @@ public class MainListActivity extends ListActivity {
         protected void onPostExecute(JSONObject blogData) {
             mProgressBar.setVisibility(View.INVISIBLE);
             mBlogData = blogData;
+            try {
+                mBlogPosts = blogData.getJSONArray(KEY_POSTS);
+            } catch (JSONException e) {
+                logException(e);
+            }
+
             handleBlogData();
         }
 
