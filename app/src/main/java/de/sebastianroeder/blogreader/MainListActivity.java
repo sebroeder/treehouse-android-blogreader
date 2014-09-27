@@ -51,7 +51,7 @@ public class MainListActivity extends ListActivity {
                 URL feedURL = new URL(FEED_URL);
                 new FetchBlogDataTask().execute(feedURL);
             } catch (MalformedURLException e) {
-                Log.e(TAG, "MalformedURLException caught: ", e);
+                logException(e);
             }
         }
     }
@@ -68,6 +68,10 @@ public class MainListActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void logException(Exception e) {
+        String exceptionType = e.getClass().getSimpleName();
+        Log.e(TAG, exceptionType + " caught: ", e);
+    }
 
     private void handleBlogData() {
         if (mBlogData != null) {
@@ -162,9 +166,9 @@ public class MainListActivity extends ListActivity {
                         new InputStreamReader(connection.getInputStream()));
                 blogData = new JSONObject(reader.readLine());
             } catch (java.io.IOException e) {
-                Log.e(TAG, "IOException caught: ", e);
+                logException(e);
             } catch (JSONException e) {
-                Log.e(TAG, "JSONException caught: ", e);
+                logException(e);
             }
             return blogData;
         }
